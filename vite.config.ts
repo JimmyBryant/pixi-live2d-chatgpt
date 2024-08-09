@@ -10,6 +10,7 @@ const pathResolve = (dir: string): string => resolve(__dirname, dir);
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/pixi-live2d-chatgpt',
   build: {
     outDir: './docs'
   },
