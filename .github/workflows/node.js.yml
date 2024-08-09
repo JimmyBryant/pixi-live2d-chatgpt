@@ -23,11 +23,8 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Commit and push changes
-        uses: EndBug/add-and-commit@v9
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          add: 'docs/**/*'
-          message: 'Update docs directory with latest build'
-          author_name: 'GitHub Actions'
-          author_email: 'actions@github.com'
-          push: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs  # 确保这里指向正确的目录
