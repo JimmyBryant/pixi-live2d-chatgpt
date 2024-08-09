@@ -10,6 +10,9 @@ const pathResolve = (dir: string): string => resolve(__dirname, dir);
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    outDir: './docs'
+  },
   server: {
     port: 3000 // 你想要的端口号
   },
