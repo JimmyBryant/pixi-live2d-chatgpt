@@ -15,13 +15,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '21.x'  # 使用你的 Node.js 版本
+          node-version: '21.x'
 
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        run: npm run build  # Vite 的构建命令
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
