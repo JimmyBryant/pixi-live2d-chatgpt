@@ -8,14 +8,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Chat: typeof import('./src/components/Chat.vue')['default']
-    HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     Live2D: typeof import('./src/components/Live2D.vue')['default']
     Message: typeof import('./src/components/Message.vue')['default']
     NAvatar: typeof import('naive-ui')['NAvatar']
     NButton: typeof import('naive-ui')['NButton']
     NInput: typeof import('naive-ui')['NInput']
-    NInputPassword: typeof import('naive-ui')['NInputPassword']
     NSelect: typeof import('naive-ui')['NSelect']
-    NSpace: typeof import('naive-ui')['NSpace']
   }
 }

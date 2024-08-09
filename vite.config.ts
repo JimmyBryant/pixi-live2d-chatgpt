@@ -5,7 +5,8 @@ import AutoImport from 'unplugin-auto-import/vite';
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
 import { resolve } from 'path';
 
-const pathResolve = (dir) => resolve(__dirname, dir);
+// 给参数添加类型注解
+const pathResolve = (dir: string): string => resolve(__dirname, dir);
 
 // https://vitejs.dev/config/
 export default defineConfig({

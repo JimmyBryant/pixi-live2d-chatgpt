@@ -1,13 +1,19 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ES2015", // 或更高版本，如 "ES2017"、"ES2020" 等
+    "lib": ["DOM", "ES2015"], // 确保包含 ES2015 或更高版本
+    "types": ["node"], // 添加这一行
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"] // 设置路径别名
+    }
   },
-  "include": ["vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

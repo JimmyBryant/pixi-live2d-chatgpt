@@ -38,32 +38,12 @@ const props = defineProps({
   }
 })
 
-async function loadLive2DModel(modelPath, isCubism4) {
-  let Live2DModel;
-  let module = null;
-  if (isCubism4) {
-    // 动态导入 Cubism 4 版本
-    module = await import('pixi-live2d-display/cubism4');
-  } else {
-    // 动态导入 Cubism 2.1 版本
-    module = await import('pixi-live2d-display/cubism2');
-  }
-  Live2DModel = module.Live2DModel;
-  // 使用 Live2DModel 加载模型
-  try {
-    const model = await Live2DModel.from(modelPath);
-    console.log('Model loaded successfully');
-    return model;
-  } catch (error) {
-    console.error('Failed to load model:', error);
-  }
-}
-
 // register InteractionManager to make Live2D models interactive
 Live2DModel.registerTicker(Ticker)
 
 const container = ref<HTMLCanvasElement | null>(null);
-let model = null;
+let model: Live2DModel;
+
 onMounted(async () => {
   if (container.value) {
     // Create PixiJS Application
@@ -100,9 +80,9 @@ onMounted(async () => {
   }
 });
 
-const startMotion = (motionName)=>{
+const startMotion = (motionName: string)=>{
   console.log('startMotion',motionName)
-  model.motion(motionName);
+  model && model.motion(motionName);
 }
 defineExpose({
   startMotion

@@ -31,24 +31,30 @@
     </div>
 </template>
 
-<script setup>
-import { ref, onMounted, watch, nextTick ,defineEmits} from 'vue';
+<script setup lang="ts">
+import { ref, onMounted, watch, nextTick } from 'vue';
 
-const apiKey = ref('');
-const selectedModel = ref('gpt-3.5-turbo'); // 默认模型
-const userInput = ref('');
-const chatHistoryContainer = ref(null);
-const live2d = ref(null)
+interface ChatEntry {
+    content: string;
+    timestamp: string;
+    isUser: boolean;
+}
+const apiKey = ref<string>('');
+const selectedModel = ref<string>('gpt-3.5-turbo'); // 默认模型
+const userInput = ref<string>('');
+const chatHistoryContainer = ref<HTMLElement | null>(null);
+const live2d = ref<any>(null); // Adjust this type according to your Live2D component
+
 
 // 默认头像
 const userAvatar = 'User';
 const gptAvatar = 'GPT';
 
 // 获取当前时间的函数
-const getCurrentTimestamp = () => new Date().toLocaleString();
+const getCurrentTimestamp = (): string => new Date().toLocaleString();
 
 // 默认聊天记录
-const chatHistory = ref([
+const chatHistory = ref<ChatEntry[]>([
     {
         content: 'Hi there! How can I assist you today?',
         timestamp: getCurrentTimestamp(),
@@ -57,7 +63,7 @@ const chatHistory = ref([
 ]);
 
 // 当前 GPT 回复
-const currentResponse = ref('');
+const currentResponse = ref<string>('');
 
 // 模型选项
 const modelOptions = [
@@ -66,11 +72,11 @@ const modelOptions = [
 ];
 
 // 语音播放缓冲区
-const speakBuffer = ref([]);
-const speakText = ref('');
+const speakBuffer = ref<string[]>([]);
+const speakText = ref<string>('');
 
 // 处理消息提交
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void>  => {
     const prompt = userInput.value.trim();
     if (prompt === '') return;
 
@@ -87,14 +93,14 @@ const handleSubmit = async () => {
     currentResponse.value = '';
 
     // 发送请求到 ChatGPT API
-    await getChatGPTResponse(prompt, selectedModel.value, timestamp);
+    await getChatGPTResponse(prompt, selectedModel.value);
 
     // 清空用户输入
     userInput.value = '';
 };
 
 // 处理键盘事件
-const handleKeyDown = (event) => {
+const handleKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault(); // 阻止换行
         handleSubmit(); // 发送消息
@@ -102,7 +108,7 @@ const handleKeyDown = (event) => {
 };
 
 // 使用 fetch API 获取 ChatGPT 响应并实时更新聊天记录
-const getChatGPTResponse = async (prompt, model, timestamp) => {
+const getChatGPTResponse = async (prompt: string, model: string): Promise<void> => {
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -118,12 +124,12 @@ const getChatGPTResponse = async (prompt, model, timestamp) => {
             }),
         });
 
-        const reader = response.body.getReader();
+        const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
         // 处理流数据
         const processStream = () => {
-            reader.read().then(({ done, value }) => {
+            reader?.read().then(({ done, value }) => {
                 if (done) {
                     console.log('Stream completed');
                     if (currentResponse.value) {
@@ -195,7 +201,7 @@ const getChatGPTResponse = async (prompt, model, timestamp) => {
     }
 };
 
-const processText = (text) => {
+const processText = (text: string): void => {
     // 使用正则表达式按标点符号分割文本
     const sentenceEndPattern = /([。！？\.\?!])(\s|$)/;
     const sentences = text.split(sentenceEndPattern).filter(Boolean);
@@ -214,21 +220,22 @@ const processText = (text) => {
     }
 };
 
-const isCompleteSentence = (text) => {
+const isCompleteSentence = (text: string): boolean => {
     // 正则表达式匹配句子结束的标点符号
     const sentenceEndPattern = /[。！？！？\.\?!]/;
     // 检查文本是否包含句子结束的标点符号
     const match = text.match(sentenceEndPattern);
     return match !== null;
 };
+
 // 是否正在播报
-const isSpeaking = ref(false);
+const isSpeaking = ref<boolean>(false);
 // 语音播报函数
-const speakFromTextBuffer = () => {
-    console.log('语音朗读',speakBuffer.value)
+const speakFromTextBuffer = (): void => {
     if (speakBuffer.value.length > 0) {
         if (isSpeaking.value) return;
         const text = speakBuffer.value.shift();
+        if (!text) return;
         // 处理文本，移除标点符号
         const cleanText = text.replace(/[.,!?]/g, '').trim();
         // 如果文本为空，则不播报
@@ -240,59 +247,43 @@ const speakFromTextBuffer = () => {
         utterance.volume = 1; // 音量
         // 监听语音合成开始事件
         utterance.onstart = () => {
-            live2d.value.startMotion('talk');
-            console.log('Speech synthesis started.');
+            live2d.value?.startMotion('talk');
+            isSpeaking.value = true;
         };
         // 监听语音合成结束事件
         utterance.onend = () => {
-            console.log('Speech synthesis ended.');
-            // 语音合成结束后，可以继续播报缓冲区中的下一个句子
+            live2d.value?.stopMotion('talk');
             isSpeaking.value = false;
-            // 语音合成结束后，可以继续播报缓冲区中的下一个句子
-            speakFromTextBuffer();
+            speakFromTextBuffer(); // 播报下一个文本
         };
+        // 播报文本
         window.speechSynthesis.speak(utterance);
-        isSpeaking.value = true;
-    } else {
-        isSpeaking.value = false;
     }
 };
-// 语音播报函数
-const speakFromText = (text) => {
-    // 处理文本，移除标点符号
-    const cleanText = text.replace(/[.,!?]/g, '').trim();
 
-    // 如果文本为空，则不播报
-    if (!cleanText) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
-    utterance.rate = 1; // 语速
-    utterance.pitch = 1; // 音调
-    utterance.volume = 1; // 音量
-    window.speechSynthesis.speak(utterance);
-};
+
 
 // 滚动到聊天记录底部
-const scrollToBottom = () => {
+const scrollToBottom = ():void => {
     const container = document.querySelector('.chat-history');
     if (container) {
         container.scrollTop = container.scrollHeight;
     }
 };
 // 保存聊天记录
-const saveChatHistory = () => {
+const saveChatHistory = ():void => {
     localStorage.setItem('chatHistory', JSON.stringify(chatHistory.value));
 };
 
 // 保存 API 密钥
-const saveApiKey = () => {
+const saveApiKey = ():void => {
     if (apiKey.value.trim()) {
         localStorage.setItem('apiKey', apiKey.value);
     }
 };
 
 // 加载聊天记录和 API 密钥
-const loadChatHistory = () => {
+const loadChatHistory = ():void => {
     const savedHistory = localStorage.getItem('chatHistory');
     if (savedHistory) {
         chatHistory.value = JSON.parse(savedHistory);
