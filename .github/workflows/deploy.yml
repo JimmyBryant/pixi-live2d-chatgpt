@@ -33,7 +33,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: './docs'  # Vite 输出目录
+          path: './dist'  # Vite 输出目录
 
   deploy:
     runs-on: ubuntu-latest
