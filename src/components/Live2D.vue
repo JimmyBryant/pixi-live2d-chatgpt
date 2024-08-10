@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { onMounted, ref ,defineProps, defineExpose} from "vue";
 import { Application, Ticker } from 'pixi.js';
-import { Live2DModel,MotionPriority } from 'pixi-live2d-display';
+import { Live2DModel } from 'pixi-live2d-display';
 
 const props = defineProps({
   model: {

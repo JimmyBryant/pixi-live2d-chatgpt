@@ -234,7 +234,8 @@ const isCompleteSentence = (text: string): boolean => {
 
 // 是否正在播报
 const isSpeaking = ref<boolean>(false);
-const removePunctuation = (str):string => {
+// 移除标点符号
+const removePunctuation = (str:string):string => {
     return str.replace(/[。，！？、：；“”‘’（）《》【】〖〗〔〕]|\p{P}/gu, '');
 };
 // 语音播报函数
