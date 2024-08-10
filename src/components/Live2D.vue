@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { onMounted, ref ,defineProps, defineExpose} from "vue";
 import { Application, Ticker } from 'pixi.js';
-import { Live2DModel } from 'pixi-live2d-display';
+import { Live2DModel,MotionPriority } from 'pixi-live2d-display';
 
 const props = defineProps({
   model: {
@@ -43,7 +43,7 @@ Live2DModel.registerTicker(Ticker)
 
 const container = ref<HTMLCanvasElement | null>(null);
 let model: Live2DModel;
-
+let curLoopMotion: string = '';
 onMounted(async () => {
   if (container.value) {
     // Create PixiJS Application
@@ -71,6 +71,13 @@ onMounted(async () => {
           model.expression();
         }
       });
+      // 监听motion start事件
+      model.internalModel.motionManager.on('motionStart',(motionName: string):void=>{
+        // console.log('motionStart:', motionName);
+        if(motionName =='idle' && curLoopMotion){  // 判断是否需要循环执行Motion
+          startMotion(curLoopMotion);
+        }
+      })
 
     } catch (error) {
       console.error("Failed to load Live2D model:", error);
@@ -79,12 +86,34 @@ onMounted(async () => {
     console.error("Container is not available.");
   }
 });
+// 循环动作
+const startLoopMotion = (motionName: string):void=>{
+  // console.log('loopMotion',motionName)
+  curLoopMotion = motionName;
+  startMotion(motionName)
+}
+// 停止循环动作
+const stopLoopMotion = ():void=>{
+  curLoopMotion = '';
+  stopAllMotions()
+}
 
+// 停止所有动作
+const stopAllMotions = ():void=>{
+  if(model){
+    model.internalModel.motionManager.stopAllMotions()
+  }
+}
 const startMotion = (motionName: string)=>{
   console.log('startMotion',motionName)
   model && model.motion(motionName);
 }
+
 defineExpose({
-  startMotion
+  startMotion,
+  stopAllMotions,
+  startLoopMotion,
+  stopLoopMotion,
+  
 })
 </script>

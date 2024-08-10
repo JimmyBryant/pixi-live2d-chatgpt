@@ -46,7 +46,6 @@ const chatHistoryContainer = ref<HTMLElement | null>(null);
 const live2d = ref<any>(null); // Adjust this type according to your Live2D component
 
 const baseUrl = import.meta.env.BASE_URL
-console.log(baseUrl)
 // 默认头像
 const userAvatar = 'User';
 const gptAvatar = 'GPT';
@@ -132,7 +131,7 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
         const processStream = () => {
             reader?.read().then(({ done, value }) => {
                 if (done) {
-                    console.log('Stream completed');
+                    // console.log('Stream completed');
                     if (currentResponse.value) {
                         chatHistory.value.push({
                             content: currentResponse.value,
@@ -161,6 +160,8 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
                                 });
                                 currentResponse.value = '';
                                 saveChatHistory();
+                                speakBuffer.value.push(speakText.value);    // 结束后插入最后的文字
+                                speakText.value = '';
                             }
                         } else {
                             try {
@@ -169,7 +170,7 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
                                     const content = json.choices[0].delta.content;
                                     currentResponse.value += content;
                                     speakText.value += content;
-                                    console.log('Speak:', speakText.value,'是否句子完整',isCompleteSentence(speakText.value))
+                                    // console.log('Speak:', speakText.value,'是否句子完整',isCompleteSentence(speakText.value))
                                     if (isCompleteSentence(speakText.value)) {
                                         processText(speakText.value.trim())
                                         speakFromTextBuffer();  // 开始朗读
@@ -204,14 +205,16 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
 
 const processText = (text: string): void => {
     // 使用正则表达式按标点符号分割文本
-    const sentenceEndPattern = /([。！？\.\?!])(\s|$)/;
+    const sentenceEndPattern = /([\s，。！？\.\?!])(\s*|$)/;
     const sentences = text.split(sentenceEndPattern).filter(Boolean);
 
     // 处理分割后的每个句子
     if (sentences.length > 1) {
         for (let i = 0; i < sentences.length - 1; i++) {
-            // 将每个完整句子添加到 speakBuffer 中
-            speakBuffer.value.push(sentences[i].trim() + sentences[i + 1].trim());
+            if (i % 2 === 0) {
+                // 将每个完整句子添加到 speakBuffer 中
+                speakBuffer.value.push(sentences[i].trim());
+            }
         }
         // 将最后剩余的文本赋值给 speakText
         speakText.value = sentences[sentences.length - 1].trim();
@@ -231,6 +234,9 @@ const isCompleteSentence = (text: string): boolean => {
 
 // 是否正在播报
 const isSpeaking = ref<boolean>(false);
+const removePunctuation = (str):string => {
+    return str.replace(/[。，！？、：；“”‘’（）《》【】〖〗〔〕]|\p{P}/gu, '');
+};
 // 语音播报函数
 const speakFromTextBuffer = (): void => {
     if (speakBuffer.value.length > 0) {
@@ -238,23 +244,28 @@ const speakFromTextBuffer = (): void => {
         const text = speakBuffer.value.shift();
         if (!text) return;
         // 处理文本，移除标点符号
-        const cleanText = text.replace(/[.,!?]/g, '').trim();
+        const cleanText = removePunctuation(text).trim();
+        // console.log('cleanText: ',cleanText)
         // 如果文本为空，则不播报
-        if (!cleanText) return;
-        const utterance = new SpeechSynthesisUtterance(text);
+        if (!cleanText){    // 继续播报下一句
+            speakFromTextBuffer();
+        };
+        const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
         utterance.rate = 1; // 语速
         utterance.pitch = 1; // 音调
         utterance.volume = 1; // 音量
         // 监听语音合成开始事件
         utterance.onstart = () => {
-            live2d.value?.startMotion('talk');
+            live2d.value?.startLoopMotion('talk');
             isSpeaking.value = true;
         };
-        // 监听语音合成结束事件
+        // 监听结束事件
         utterance.onend = () => {
-            live2d.value?.stopMotion('talk');
+            // console.log('Speech synthesis ended,停止loop motion');
+            live2d.value?.stopLoopMotion();
             isSpeaking.value = false;
+            // console.log('还有多少没朗读？',speakBuffer.value)
             speakFromTextBuffer(); // 播报下一个文本
         };
         // 播报文本
