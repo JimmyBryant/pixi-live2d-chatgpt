@@ -74,6 +74,7 @@
     padding: 8px;
     border-radius: 8px;
     word-break: break-word;
+    text-align: left;
   }
   
   .message-container.user .message {

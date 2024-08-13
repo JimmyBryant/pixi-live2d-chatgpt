@@ -8,7 +8,7 @@
                 <NInput v-model:value="apiKey" placeholder="Enter your OpenAI API key" type="password"
                     show-password-on="mousedown" @blur="saveApiKey" />
             </div>
-            <NSelect v-model:value="selectedModel" :options="modelOptions" placeholder="Select ChatGPT model" />
+            <NSelect v-model:value="selectedModel" :options="modelOptions" placeholder="Select ChatGPT model" @change="handleModelChange" />
         </div>
 
         <div class="chat-container">
@@ -118,7 +118,10 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
             },
             body: JSON.stringify({
                 model: model,
-                messages: [{ role: 'user', content: prompt }],
+                messages: [
+                    {role: "system", content: "You are an admission officer from UW Madison. Please provide your answers in a very concise way."},
+                    { role: 'user', content: prompt }
+                ],
                 max_tokens: 1000,
                 stream: true,
             }),
@@ -205,9 +208,9 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
 
 const processText = (text: string): void => {
     // 使用正则表达式按标点符号分割文本
-    const sentenceEndPattern = /([\s，。！？\.\?!])(\s*|$)/;
+    const sentenceEndPattern = /([，。！？,\.\?!])/;
     const sentences = text.split(sentenceEndPattern).filter(Boolean);
-
+    console.log('处理文本',text)
     // 处理分割后的每个句子
     if (sentences.length > 1) {
         for (let i = 0; i < sentences.length - 1; i++) {
@@ -236,8 +239,22 @@ const isCompleteSentence = (text: string): boolean => {
 const isSpeaking = ref<boolean>(false);
 // 移除标点符号
 const removePunctuation = (str:string):string => {
-    return str.replace(/[。，！？、：；“”‘’（）《》【】〖〗〔〕]|\p{P}/gu, '');
+    return str.replace(/[。，！？、：；“”‘’（）《》【】〖〗〔〕]|\p{P}/gu, ' ');
 };
+// 获取语音列表
+const getVoices = () => {
+    return new Promise((resolve) => {
+        const synth = window.speechSynthesis;
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = () => {
+                resolve(synth.getVoices());
+            };
+        } else {
+            resolve(synth.getVoices());
+        }
+    });
+};
+
 // 语音播报函数
 const speakFromTextBuffer = (): void => {
     if (speakBuffer.value.length > 0) {
@@ -246,16 +263,22 @@ const speakFromTextBuffer = (): void => {
         if (!text) return;
         // 处理文本，移除标点符号
         const cleanText = removePunctuation(text).trim();
-        // console.log('cleanText: ',cleanText)
+        console.log('cleanText: ',cleanText)
         // 如果文本为空，则不播报
         if (!cleanText){    // 继续播报下一句
             speakFromTextBuffer();
         };
+        const lang = 'en-US'
+        const voiceList = voices.filter(v => v.lang.includes(lang)) || [];
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
+   
+        // utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
+        utterance.lang = lang; // 设置语言为中文，根据需要可以更改
         utterance.rate = 1; // 语速
         utterance.pitch = 1; // 音调
         utterance.volume = 1; // 音量
+        utterance.voice = voiceList[30]; 
+
         // 监听语音合成开始事件
         utterance.onstart = () => {
             live2d.value?.startLoopMotion('talk');
@@ -274,7 +297,10 @@ const speakFromTextBuffer = (): void => {
     }
 };
 
-
+const handleModelChange = (newModel) => {
+    selectedModel.value = newModel;
+    localStorage.setItem('selectedModel', newModel);
+};
 
 // 滚动到聊天记录底部
 const scrollToBottom = ():void => {
@@ -317,10 +343,15 @@ watch(chatHistory, () => {
     });
 });
 
-
-onMounted(() => {
+let voices = [] // 存放语音列表
+onMounted(async () => {
     loadChatHistory();
     loadApiKey();
+    const savedModel = localStorage.getItem('selectedModel');
+    if (savedModel) {
+        selectedModel.value = savedModel;
+    }
+    voices = await getVoices();
 });
 </script>
 
