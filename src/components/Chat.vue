@@ -246,7 +246,7 @@ const removePunctuation = (str:string):string => {
     return str.replace(/[。，！？、：；“”‘’（）《》【】〖〗〔〕]|\p{P}/gu, ' ');
 };
 // 获取语音列表
-const getVoices = () => {
+const getVoices = ():Promise<SpeechSynthesisVoice[]>=> {
     return new Promise((resolve) => {
         const synth = window.speechSynthesis;
         if (synth.onvoiceschanged !== undefined) {
@@ -301,7 +301,7 @@ const speakFromTextBuffer = (): void => {
     }
 };
 
-const handleModelChange = (newModel) => {
+const handleModelChange = (newModel: string) => {
     selectedModel.value = newModel;
     localStorage.setItem('selectedModel', newModel);
 };
@@ -347,7 +347,7 @@ watch(chatHistory, () => {
     });
 });
 
-let voices = [] // 存放语音列表
+let voices:SpeechSynthesisVoice[] = [] // 存放语音列表
 onMounted(async () => {
     loadChatHistory();
     loadApiKey();
