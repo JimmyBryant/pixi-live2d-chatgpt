@@ -60,7 +60,8 @@ onMounted(async () => {
       model.scale.set(props.scale);
       model.x = props.x;
       model.y = props.y;
-
+      // window['mymodel'] = model;
+      // window['loopmotion'] = ()=>{startLoopMotion('talk')};
       model.on("hit", (hitAreas) => {
         console.log("Hit areas:", hitAreas);
         if (hitAreas.includes("Body")) {
@@ -72,9 +73,14 @@ onMounted(async () => {
         }
       });
       // 监听motion start事件
-      model.internalModel.motionManager.on('motionStart',(motionName: string):void=>{
-        // console.log('motionStart:', motionName);
-        if(motionName =='idle' && curLoopMotion){  // 判断是否需要循环执行Motion
+      // model.internalModel.motionManager.on('motionStart',(motionName: string):void=>{
+      //   console.log('motionStart:', motionName);
+      // })
+      // 监听motion Finish事件
+      model.internalModel.motionManager.on('motionFinish',():void=>{
+        console.log('motionFinish');
+        if(curLoopMotion){  // 判断是否需要循环执行Motion
+          console.log('loop motion:', curLoopMotion);
           startMotion(curLoopMotion);
         }
       })
@@ -105,8 +111,10 @@ const stopAllMotions = ():void=>{
   }
 }
 const startMotion = (motionName: string)=>{
-  console.log('startMotion',motionName)
-  model && model.motion(motionName);
+  if(model && model.internalModel.motionManager.isFinished()){
+    console.log('执行motion',motionName)
+    setTimeout(()=>{model.motion(motionName);},100)
+  }
 }
 
 defineExpose({

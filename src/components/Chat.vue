@@ -1,7 +1,7 @@
 <template>
     <div class="flex h100">
         <div class="live2d-container">
-            <Live2D ref="live2d" :model="`${baseUrl}models/histoire/model.json`" :cubism="2" :scale=".4"/>
+            <Live2D ref="live2d" :model="modelPath" :cubism="2" :scale=".4"/>
         </div>
         <div class="sidebar container">
             <div class="api-key-container">
@@ -46,6 +46,10 @@ const chatHistoryContainer = ref<HTMLElement | null>(null);
 const live2d = ref<any>(null); // Adjust this type according to your Live2D component
 
 const baseUrl = import.meta.env.BASE_URL
+// const modelPath = baseUrl + '/models/histoire/model.json'
+// const modelPath = baseUrl + '/models/21/img/keyboard/cat_model/cat.model3.json';
+const modelPath = baseUrl + '/models/11/img/standard/cat_model/cat.model3.json';
+// const modelPath = baseUrl + '/models/21/img/gamepad/cat_model/cat.model3.json';
 // 默认头像
 const userAvatar = 'User';
 const gptAvatar = 'GPT';

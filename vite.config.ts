@@ -10,9 +10,9 @@ const pathResolve = (dir: string): string => resolve(__dirname, dir);
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/pixi-live2d-chatgpt/',
+  base: '/pixi-live2d-chatgpt',
   server: {
-    port: 3000 // 你想要的端口号
+    port: 3008 // 你想要的端口号
   },
   plugins: [
     vue(),
