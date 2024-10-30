@@ -8,7 +8,12 @@
                 <NInput v-model:value="apiKey" placeholder="Enter your OpenAI API key" type="password"
                     show-password-on="mousedown" @blur="saveApiKey" />
             </div>
-            <NSelect v-model:value="selectedModel" :options="modelOptions" placeholder="Select ChatGPT model" @change="handleModelChange" />
+            <div class="my-2">
+                <NSelect v-model:value="selectedModel" :options="modelOptions" placeholder="Select ChatGPT model" @update:value="handleModelChange" />
+            </div>
+            <div class="my-2">
+                <NSelect v-model:value="selectedVoice" :options="voiceOptions" placeholder="Select Voice" @update:value="handleVoiceChange"/>
+            </div>
         </div>
 
         <div class="chat-container">
@@ -111,6 +116,53 @@ const handleKeyDown = (event: KeyboardEvent): void => {
     }
 };
 
+const voiceOptions = [
+{
+    label: 'Robot',
+    value: 'robot',   
+},
+{
+    label: 'Shimmer',
+    value: 'shimmer'
+},
+{
+    label: 'Alloy',
+    value: 'alloy'
+},
+{
+    label: 'Nova',
+    value: 'nova'
+}];
+const selectedVoice = ref<string>('robot');
+async function fetchOpenAITTS(inputText: string):Promise<string> {
+
+  // 定义请求的 API 端点和设置
+  const response = await fetch('https://api.openai.com/v1/audio/speech', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey.value}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: "tts-1",           // 指定 TTS 模型
+      voice: selectedVoice.value,           // 指定语音类型（如 alloy）
+      input: inputText          // 传入的文本内容
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error: ${response.statusText}`);
+  }
+
+  // 将返回的音频文件作为 Blob 处理
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  return audioUrl;
+//   // 使用 Audio 对象播放音频
+//   const audio = new Audio(audioUrl);
+//   audio.play();
+}
+
 // 使用 fetch API 获取 ChatGPT 响应并实时更新聊天记录
 const getChatGPTResponse = async (prompt: string, model: string): Promise<void> => {
     try {
@@ -185,7 +237,7 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
                                     scrollToBottom();   // 滚动到底部
                                 }
                             } catch (err) {
-                                console.error('Error parsing JSON:', err);
+                                console.error('Error parsing JSON:', line);
                             }
                         }
                     }
@@ -214,7 +266,7 @@ const processText = (text: string): void => {
     // 使用正则表达式按标点符号分割文本
     const sentenceEndPattern = /([，。！？,\.\?!])/;
     const sentences = text.split(sentenceEndPattern).filter(Boolean);
-    console.log('处理文本',text)
+    // console.log('处理文本',text)
     // 处理分割后的每个句子
     if (sentences.length > 1) {
         for (let i = 0; i < sentences.length - 1; i++) {
@@ -260,50 +312,78 @@ const getVoices = ():Promise<SpeechSynthesisVoice[]>=> {
 };
 
 // 语音播报函数
-const speakFromTextBuffer = (): void => {
+const speakFromTextBuffer = async (): Promise<void> => {
     if (speakBuffer.value.length > 0) {
         if (isSpeaking.value) return;
         const text = speakBuffer.value.shift();
         if (!text) return;
         // 处理文本，移除标点符号
         const cleanText = removePunctuation(text).trim();
-        console.log('cleanText: ',cleanText)
+        // console.log('cleanText: ',cleanText)
         // 如果文本为空，则不播报
         if (!cleanText){    // 继续播报下一句
             speakFromTextBuffer();
+            return;
         };
-        const lang = 'en-US'
-        const voiceList = voices.filter(v => v.lang.includes(lang)) || [];
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-   
-        // utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
-        utterance.lang = lang; // 设置语言为中文，根据需要可以更改
-        utterance.rate = 1; // 语速
-        utterance.pitch = 1; // 音调
-        utterance.volume = 1; // 音量
-        utterance.voice = voiceList[30]; 
+        isSpeaking.value = true;    // 标记正在朗读语音
 
-        // 监听语音合成开始事件
-        utterance.onstart = () => {
-            live2d.value?.startLoopMotion('talk');
-            isSpeaking.value = true;
-        };
-        // 监听结束事件
-        utterance.onend = () => {
-            // console.log('Speech synthesis ended,停止loop motion');
-            live2d.value?.stopLoopMotion();
-            isSpeaking.value = false;
-            // console.log('还有多少没朗读？',speakBuffer.value)
-            speakFromTextBuffer(); // 播报下一个文本
-        };
-        // 播报文本
-        window.speechSynthesis.speak(utterance);
+        if(selectedVoice.value === 'robot'){
+            const lang = 'en-US'
+            const voiceList = voices.filter(v => v.lang.includes(lang)) || [];
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+            // utterance.lang = 'zh-CN'; // 设置语言为中文，根据需要可以更改
+            utterance.lang = lang; // 设置语言为中文，根据需要可以更改
+            utterance.rate = 1; // 语速
+            utterance.pitch = 1; // 音调
+            utterance.volume = 1; // 音量
+            utterance.voice = voiceList[30]; 
+
+            // 监听语音合成开始事件
+            utterance.onstart = () => {
+                live2d.value?.startLoopMotion('talk');
+            };
+            // 监听结束事件
+            utterance.onend = () => {
+                live2d.value?.stopLoopMotion();
+                isSpeaking.value = false;
+                speakFromTextBuffer(); // 播报下一个文本
+            };
+            // 播报文本
+            window.speechSynthesis.speak(utterance);
+            console.log('selectedVoice: ',selectedVoice.value,cleanText)
+        }else{
+            const audioUrl = await fetchOpenAITTS(cleanText)
+            // 创建并监听 Audio 对象
+            const audio = new Audio(audioUrl);
+
+            // 监听音频开始事件
+            audio.addEventListener('play', () => {
+                console.log(audioUrl,' Audio started',new Date().toLocaleTimeString());
+                live2d.value?.startLoopMotion('talk');
+            });
+
+            // 监听音频结束事件
+            audio.addEventListener('ended', () => {
+                console.log(audioUrl,' Audio end',new Date().toLocaleTimeString());
+                live2d.value?.stopLoopMotion();
+                isSpeaking.value = false;
+                speakFromTextBuffer(); // 播报下一个文本
+            });
+
+            // 播放音频
+            audio.play();
+        }
+
     }
 };
 
 const handleModelChange = (newModel: string) => {
     selectedModel.value = newModel;
     localStorage.setItem('selectedModel', newModel);
+};
+const handleVoiceChange = (newVoice: string) => {
+    localStorage.setItem('selectedVoice', newVoice);
 };
 
 // 滚动到聊天记录底部
@@ -352,8 +432,12 @@ onMounted(async () => {
     loadChatHistory();
     loadApiKey();
     const savedModel = localStorage.getItem('selectedModel');
+    const savedVoice = localStorage.getItem('selectedVoice')
     if (savedModel) {
         selectedModel.value = savedModel;
+    }
+    if(savedVoice){
+        selectedVoice.value = savedVoice;
     }
     voices = await getVoices();
 });
@@ -363,7 +447,12 @@ onMounted(async () => {
 .flex {
     display: flex;
 }
-
+.my-2{
+    margin: .5rem 0;
+}
+.my-4{
+    margin: 1rem 0;
+}
 .h100 {
     height: 100%;
 }
@@ -379,7 +468,7 @@ onMounted(async () => {
 }
 
 .api-key-container {
-    margin-bottom: 20px;
+    margin-bottom: .5rem;
 }
 
 .chat-history {
