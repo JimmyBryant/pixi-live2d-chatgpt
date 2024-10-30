@@ -264,7 +264,7 @@ const getChatGPTResponse = async (prompt: string, model: string): Promise<void> 
 
 const processText = (text: string): void => {
     // 使用正则表达式按标点符号分割文本
-    const sentenceEndPattern = /([，。！？,\.\?!])/;
+    const sentenceEndPattern = /(?<!\d)([，。！？,\.\?!])/;
     const sentences = text.split(sentenceEndPattern).filter(Boolean);
     // console.log('处理文本',text)
     // 处理分割后的每个句子
